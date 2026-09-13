@@ -587,6 +587,7 @@ class Player(EventAdapter):
         if self.preloaded_id:
             integration = get_current_integration()
             integration.loaded_models.get('currentSong').set_property('songId', self.preloaded_id)
+            self.emit_changes(self.mpris.player, changes=['Metadata', 'PlaybackStatus'])
 
     def restore_play_queue(self):
         integration = get_current_integration()
