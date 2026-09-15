@@ -373,7 +373,8 @@ TRANSLATORS = [
     "Yuan Chiu (Traditional Chinese) https://yuaner.tw",
     "Milo Ivir (Croatian) https://github.com/milotype",
     "Aryan Karamtoth (Telugu) https://github.com/spaciouskarter78",
-    "Rikelry Souza (Brazilian Portuguese) https://github.com/Rikelry"
+    "Rikelry Souza (Brazilian Portuguese) https://github.com/Rikelry",
+    "vh45f (Italian) https://github.com/vh45f"
 ]
 
 PLAYBACK_MODES = {
