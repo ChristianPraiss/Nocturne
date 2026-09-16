@@ -186,7 +186,7 @@ Traditional Chinese     | [Yuan Chiu](https://yuaner.tw)
 Croatian                | [Milo Ivir](https://github.com/milotype)
 Telugu                  | [Aryan Karamtoth](https://github.com/spaciouskarter78)
 Brazilian Portuguese    | [Rikelry Souza](https://github.com/Rikelry)
-Italian                 | [vh45f](https://github.com/vh45f)
+Italian                 | [Federico Veronesi](https://github.com/vh45f)
 
 ## Legal Disclaimer
 
