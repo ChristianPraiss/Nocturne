@@ -97,6 +97,19 @@
   </keywords>
 
   <releases>
+    <release version="1.5.2" date="2026-10-16">
+      <url type="details">https://github.com/Jeffser/Nocturne/releases/tag/1.5.2</url>
+      <p>New</p>
+      <ul>
+        <li>General improvements to UI and usability</li>
+        <li>Better gapless playback</li>
+        <li>New translations</li>
+      </ul>
+      <p>Fixes</p>
+      <ul>
+        <li>Multiple fixes and optimizations for Jellyfin instance</li>
+      </ul>
+    </release>
     <release version="1.5.1" date="2026-07-29">
       <url type="details">https://github.com/Jeffser/Nocturne/releases/tag/1.5.1</url>
       <description translate="no">
