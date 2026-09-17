@@ -1,8 +1,8 @@
 # row.py
 
-from gi.repository import Gtk, Adw, Gdk, GLib, Pango, Gio
+from gi.repository import GObject, Gtk, Adw, Gdk, GLib, Pango, Gio
 from .queue import SongQueue
-from ...integrations import get_current_integration
+from ...integrations import get_current_integration, models
 from ..containers import ContextContainer
 from ...constants import CONTEXT_SONG, get_display_time
 from urllib.parse import urlparse
@@ -10,6 +10,8 @@ from urllib.parse import urlparse
 @Gtk.Template(resource_path='/com/jeffser/Nocturne/song/row.ui')
 class SongRow(Adw.ActionRow):
     __gtype_name__ = 'NocturneSongRow'
+
+    model = GObject.Property(type=models.Song)
 
     icon_el = Gtk.Template.Child()
     title_el = Gtk.Template.Child()
@@ -29,37 +31,52 @@ class SongRow(Adw.ActionRow):
         integration = get_current_integration()
         integration.verifySong(self.id)
         super().__init__(
-            action_target=GLib.Variant.new_string(self.id)
+            model=integration.loaded_models.get(self.id)
         )
-
-        self.star_el.set_action_target_value(GLib.Variant.new_string(self.id))
-
-        integration.connect_to_model(self.id, 'title', self.update_title)
-        integration.connect_to_model(self.id, 'artists', self.update_artists)
-        integration.connect_to_model(self.id, 'duration', self.update_duration)
-        integration.connect_to_model(self.id, 'starred', self.update_starred)
-        integration.connect_to_model(self.id, 'radioStreamUrl', self.update_radioStreamUrl) # for radios
-        integration.connect_to_model(self.id, 'isExternalFile', self.update_is_external)
-        integration.connect_to_model(self.id, 'deleted', self.delete_status_changed)
-        integration.connect_to_model('currentSong', 'songId', self.current_song_changed)
-
         Gio.Settings(schema_id="com.jeffser.Nocturne").bind(
             "show-context-button",
             self.menu_button_el,
             "visible",
             Gio.SettingsBindFlags.DEFAULT
         )
+        integration.connect_to_model(self.id, 'artists', self.update_artists)
+        integration.connect_to_model(self.id, 'radioStreamUrl', self.update_radioStreamUrl) # for radios
+        integration.connect_to_model(self.id, 'deleted', self.delete_status_changed)
+        integration.connect_to_model('currentSong', 'songId', self.current_song_changed)
+
+    @Gtk.Template.Callback()
+    def format_action_target(self, obj, value, variant) -> GLib.Variant:
+        return GLib.Variant(variant, value)
+
+    @Gtk.Template.Callback()
+    def format_duration(self, obj, duration:int) -> str:
+        if duration == -1:
+            return _("Radio")
+        else:
+            return get_display_time(duration)
+
+    @Gtk.Template.Callback()
+    def format_to_bool(self, obj, value) -> bool:
+        return bool(value)
+
+    @Gtk.Template.Callback()
+    def format_starred_icon_name(self, obj, starred:bool) -> str:
+        if starred:
+            self.star_el.add_css_class('accent')
+            self.star_el.remove_css_class('dim-label')
+        else:
+            self.star_el.remove_css_class('accent')
+            self.star_el.add_css_class('dim-label')
+        return "heart-filled-symbolic" if starred else "heart-outline-thick-symbolic"
+
+    @Gtk.Template.Callback()
+    def format_starred_visibility(self, obj, isExternalFile:bool, radioStreamUrl:str) -> bool:
+        return not isExternalFile and not radioStreamUrl
 
     def delete_status_changed(self, status:bool):
         if status:
             if listbox := self.get_ancestor(Gtk.ListBox):
                 listbox.remove(self)
-
-    def update_is_external(self, isExternalFile:bool):
-        self.external_file_el.set_visible(isExternalFile)
-
-        integration = get_current_integration()
-        self.star_el.set_visible(not isExternalFile and not integration.loaded_models.get(self.id).get_property('radioStreamUrl'))
 
     def generate_context_menu(self) -> ContextContainer:
         integration = get_current_integration()
@@ -98,11 +115,6 @@ class SongRow(Adw.ActionRow):
         else:
             del context_dict["remove"]
         return ContextContainer(context_dict, self.id)
-
-    def update_title(self, title:str):
-        self.title_el.set_label(title)
-        self.title_el.set_tooltip_text(title)
-        self.set_name(title)
 
     def update_duration(self, duration:int):
         if duration == -1:

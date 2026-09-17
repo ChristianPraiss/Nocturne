@@ -3,8 +3,11 @@ using Adw 1;
 
 template $NocturneSongRow: Adw.ActionRow {
   activatable: true;
-  action-name: "app.play_song";
   use-markup: false;
+  action-name: "app.play_song";
+  action-target: bind $format_action_target(template.model as <$NocturneModelSong> .id, 's');
+  name: bind template.model as <$NocturneModelSong> .title;
+
   Gtk.GestureClick {
     button: 3;
     released => $show_popover();
@@ -59,6 +62,8 @@ template $NocturneSongRow: Adw.ActionRow {
 
         ellipsize: end;
         halign: start;
+        label: bind template.model as <$NocturneModelSong> .title;
+        tooltip-text: bind template.model as <$NocturneModelSong> .title;
       }
 
       Adw.WrapBox subtitle_wrapbox {
@@ -71,7 +76,7 @@ template $NocturneSongRow: Adw.ActionRow {
           action-name: "app.show_external_file_warning";
           tooltip-text: _("External File");
           icon-name: "paper-symbolic";
-          visible: false;
+          visible: bind template.model as <$NocturneModelSong> .isExternalFile;
           styles [
             "force_p0",
             "flat",
@@ -84,8 +89,9 @@ template $NocturneSongRow: Adw.ActionRow {
             "subtitle",
             "numeric"
           ]
-          visible: false;
           ellipsize: end;
+          label: bind $format_duration(template.model as <$NocturneModelSong> .duration);
+          visible: bind $format_to_bool(template.model as <$NocturneModelSong> .duration);
         }
 
         Adw.Bin artist_container_el {}
@@ -107,13 +113,14 @@ template $NocturneSongRow: Adw.ActionRow {
               "circular",
               "flat"
             ]
-
-            child: Adw.Spinner {};
-            action-name: "app.toggle_star";
-            valign: center;
             accessibility {
               label: _("Toggle star");
             }
+            icon-name: bind $format_starred_icon_name(template.model as <$NocturneModelSong> .starred);
+            action-name: "app.toggle_star";
+            action-target: bind $format_action_target(template.model as <$NocturneModelSong> .id, 's');
+            valign: center;
+            visible: bind $format_starred_visibility(template.model as <$NocturneModelSong> .isExternalFile, template.model as <$NocturneModelSong> .radioStreamUrl);
           }
 
           Gtk.MenuButton menu_button_el {

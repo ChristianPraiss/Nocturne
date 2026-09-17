@@ -4,6 +4,7 @@ using Adw 1;
 template $NocturneSongButton: Gtk.Box {
   orientation: vertical;
   halign: center;
+  name: bind template.model as <$NocturneModelSong> .title;
 
   Gtk.Button cover_button_el {
     styles [
@@ -12,8 +13,9 @@ template $NocturneSongButton: Gtk.Box {
       "active_appearance_button"
     ]
     action-name: "app.play_song";
+    action-target: bind $format_action_target(template.model as <$NocturneModelSong> .id, 's');
     halign: center;
-    tooltip-text: _("Play Song");
+    tooltip-text: bind template.model as <$NocturneModelSong> .title;
     child: Gtk.Box {
       orientation: vertical;
       spacing: 5;
@@ -24,9 +26,7 @@ template $NocturneSongButton: Gtk.Box {
         icon-size: large;
         overflow: hidden;
         hexpand: true;
-        paintable: Adw.SpinnerPaintable {
-          widget: cover_el;
-        };
+        paintable: bind $format_cover_paintable(template.model as <$NocturneModelSong> .gdkPaintable);
         accessibility {
           label: _("Song cover art");
         }
@@ -52,6 +52,7 @@ template $NocturneSongButton: Gtk.Box {
           ellipsize: end;
           max-width-chars: 1;
           hexpand: true;
+          label: bind template.model as <$NocturneModelSong> .title;
         };
       }
     };
@@ -81,9 +82,13 @@ template $NocturneSongButton: Gtk.Box {
       label: _("Enter artist page");
     }
 
+    action-name: "app.show_artist";
+    action-target: bind $format_action_target(template.model as <$NocturneModelSong> .artistId, 's');
+    tooltip-text: bind template.model as <$NocturneModelSong> .artist;
     child: Gtk.Label {
       ellipsize: end;
       max-width-chars: 1;
+      label: bind template.model as <$NocturneModelSong> .artist;
     };
   }
 }

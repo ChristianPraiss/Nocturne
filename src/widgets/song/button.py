@@ -1,13 +1,15 @@
 # button.py
 
-from gi.repository import Gtk, Adw, GLib, Gdk, Gio
-from ...integrations import get_current_integration
+from gi.repository import GObject, Gtk, Adw, GLib, Gdk, Gio
+from ...integrations import get_current_integration, models
 from ...constants import CONTEXT_SONG, CONTEXT_ARTIST
 from ..containers import ContextContainer
 
 @Gtk.Template(resource_path='/com/jeffser/Nocturne/song/button.ui')
 class SongButton(Gtk.Box):
     __gtype_name__ = 'NocturneSongButton'
+
+    model = GObject.Property(type=models.Song)
 
     cover_el = Gtk.Template.Child()
     cover_button_el = Gtk.Template.Child()
@@ -19,15 +21,11 @@ class SongButton(Gtk.Box):
         self.id = id
         integration = get_current_integration()
         integration.verifySong(self.id)
-        super().__init__()
-
-        self.cover_button_el.set_action_target_value(GLib.Variant.new_string(self.id))
         self.settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
         self.settings.connect("changed::button-size", lambda *_: self.update_size())
-
-        integration.connect_to_model(self.id, 'title', self.update_name)
-        integration.connect_to_model(self.id, 'artists', self.update_artists)
-        integration.connect_to_model(self.id, 'gdkPaintable', self.update_cover)
+        super().__init__(
+            model=integration.loaded_models.get(self.id)
+        )
         integration.connect_to_model('currentSong', 'songId', self.current_song_changed)
 
     def update_size(self):
@@ -43,37 +41,22 @@ class SongButton(Gtk.Box):
             self.name_el.remove_css_class('title-3')
             self.name_el.add_css_class('title-4')
 
-    def update_name(self, name:str):
-        self.name_el.set_label(name)
-        self.cover_button_el.set_tooltip_text(name)
-        self.set_name(name)
+    @Gtk.Template.Callback()
+    def format_action_target(self, obj, value, variant) -> GLib.Variant:
+        return GLib.Variant(variant, value)
 
-    def update_artists(self, artists:list):
-        if artists:
-            if artist_name := artists[0].get('name'):
-                self.artist_el.get_child().set_label(artist_name)
-                self.artist_el.set_tooltip_text(artist_name)
-            if artist_id := artists[0].get('id'):
-                self.artist_el.set_action_target_value(GLib.Variant('s', artist_id))
-                self.artist_el.set_action_name('app.show_artist')
-            return
-        self.artist_el.get_child().set_label("")
-        self.artist_el.set_tooltip_text("")
-
-    def update_cover(self, paintable):
-        if paintable:
-            self.cover_el.set_from_paintable(paintable)
-        elif isinstance(self.cover_el.get_paintable(), Adw.SpinnerPaintable):
-            self.cover_el.set_from_icon_name("music-queue-symbolic")
-        self.update_size()
+    @Gtk.Template.Callback()
+    def format_cover_paintable(self, obj, paintable:Gdk.Paintable) -> Gdk.Paintable:
+        GLib.idle_add(self.update_size)
+        return paintable
 
     def current_song_changed(self, songId):
         self.play_indicator_el.set_visible(self.id == songId)
         if self.id == songId:
-            self.cover_button_el.set_action_name(None)
+            self.cover_button_el.set_sensitive(False)
             self.cover_button_el.add_css_class('accent')
         else:
-            self.cover_button_el.set_action_name("app.play_song")
+            self.cover_button_el.set_sensitive(True)
             self.cover_button_el.remove_css_class('accent')
 
     def generate_context_menu(self) -> ContextContainer:
