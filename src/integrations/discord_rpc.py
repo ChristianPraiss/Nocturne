@@ -69,7 +69,7 @@ class DiscordRPC:
                 if integration := get_current_integration():
                     success, state, pending = self.player.gst.get_state(0)
                     if state == Gst.State.PLAYING:
-                        if song_id := integration.loaded_models.get("currentSong").get_property("songId"):
+                        if song_id := integration.get_property('current-state').get_property("songId"):
                             activity["assets"]["large_image"] = self._get_cover_art(song_id) or "logo"
                 self.pending = None
 
@@ -159,7 +159,7 @@ class DiscordRPC:
         if not integration:
             return None
 
-        current_song = integration.loaded_models.get("currentSong")
+        current_song = integration.get_property('current-state')
         song_id = current_song.get_property("songId")
         if not song_id:
             return None

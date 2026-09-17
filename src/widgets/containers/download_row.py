@@ -37,7 +37,7 @@ class DownloadRow(Gtk.ListBoxRow):
     @Gtk.Template.Callback()
     def remove_from_queue(self, button):
         integration = get_current_integration()
-        download_queue = integration.loaded_models.get('currentSong').get_property('downloadQueueModel')
+        download_queue = integration.get_property('current-state').get_property('downloadQueueModel')
         found, position = download_queue.find_with_equal_func(
             self.model,
             lambda item_a, item_b, ud: item_a.get_property('songId') == item_b.get_property('songId'),

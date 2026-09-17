@@ -26,7 +26,7 @@ class PlayingQueuePage(Gtk.ScrolledWindow):
     def setup(self):
         integration = get_current_integration()
         integration.connect_to_model('currentSong', 'generatingQueue', self.autoplay_spinner_el.get_parent().set_visible)
-        global_queue = integration.loaded_models.get('currentSong').get_property('queueModel')
+        global_queue = integration.get_property('current-state').get_property('queueModel')
         if len(list(self.song_list_el.list_el)) == 0:
             self.queue_changed(global_queue, 0, 0, global_queue.get_property('n-items'))
         global_queue.connect('items-changed', self.queue_changed)

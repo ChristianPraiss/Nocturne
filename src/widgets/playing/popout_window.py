@@ -27,7 +27,7 @@ class PopoutWindow(Adw.ApplicationWindow):
         )
 
         integration = get_current_integration()
-        current_song_id = integration.loaded_models.get('currentSong').get_property('songId')
+        current_song_id = integration.get_property('current-state').get_property('songId')
         self.playing_page.last_song_id = current_song_id
 
         GLib.idle_add(self.playing_page.setup)

@@ -61,16 +61,14 @@ class PlayingControlPage(Adw.NavigationPage):
 
     def update_position(self, positionSeconds:int):
         integration = get_current_integration()
-        current_song = integration.loaded_models.get('currentSong')
-        if current_song:
-            song = integration.loaded_models.get(current_song.get_property('songId'))
-            if song:
-                label_positive = get_display_time(positionSeconds)
-                label_negative = get_display_time(song.get_property('duration') - positionSeconds)
-                self.positive_progress_el.set_label(label_positive)
-                self.negative_progress_el.set_label('-{}'.format(label_negative))
-                if not integration.loaded_models.get('currentSong').get_property('seeking'):
-                    self.progress_el.get_adjustment().set_value(positionSeconds)
+        song = integration.loaded_models.get(integration.get_property('current-state').get_property('songId'))
+        if song:
+            label_positive = get_display_time(positionSeconds)
+            label_negative = get_display_time(song.get_property('duration') - positionSeconds)
+            self.positive_progress_el.set_label(label_positive)
+            self.negative_progress_el.set_label('-{}'.format(label_negative))
+            if not integration.get_property('current-state').get_property('seeking'):
+                self.progress_el.get_adjustment().set_value(positionSeconds)
 
     def breakpoint_toggled(self, active:bool):
         self.breakpoint_state = active
@@ -88,9 +86,9 @@ class PlayingControlPage(Adw.NavigationPage):
     def progress_bar_changed(self, scale_el, scroll_type, value):
         value = scale_el.get_adjustment().get_value()
         integration = get_current_integration()
-        integration.loaded_models.get('currentSong').set_property('seeking', True)
+        integration.get_property('current-state').set_property('seeking', True)
         def change_time(val):
-            integration.loaded_models.get('currentSong').set_property('seeking', False)
+            integration.get_property('current-state').set_property('seeking', False)
             nanoseconds = int(val * Gst.SECOND)
             self.get_root().get_application().player.gst.seek_simple(
                 Gst.Format.TIME,
@@ -111,7 +109,7 @@ class PlayingControlPage(Adw.NavigationPage):
     def change_rating(self, button):
         integration = get_current_integration()
         target_value = GLib.Variant('a{sv}', {
-            'model_id': GLib.Variant('s', integration.loaded_models.get('currentSong').get_property('songId')),
+            'model_id': GLib.Variant('s', integration.get_property('current-state').get_property('songId')),
             'rating': GLib.Variant('i', int(button.get_name()))
         })
         self.get_root().activate_action("app.set_rating", target_value)

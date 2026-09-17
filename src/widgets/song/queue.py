@@ -28,7 +28,7 @@ class SongQueue(Gtk.Box):
             if row.__gtype_name__ != 'NocturneDiscIndicator':
                 row.suffixes_stack_el.set_visible_child_name('select' if select else 'normal')
                 row.check_el.set_active(row == selected_row)
-                row.set_activatable(not select and row.id != integration.loaded_models.get('currentSong').get_property('songId'))
+                row.set_activatable(not select and row.id != integration.get_property('current-state').get_property('songId'))
 
         if select:
             self.remove_el.set_visible(selected_row.removable)
@@ -82,18 +82,18 @@ class SongQueue(Gtk.Box):
             self.main_stack.set_visible_child_name('content' if len(list(self.list_el)) > 0 else 'no-content')
         else:
             integration = get_current_integration()
-            queue_model = integration.loaded_models.get('currentSong').get_property('queueModel')
+            queue_model = integration.get_property('current-state').get_property('queueModel')
             all_ids = [so.get_string() for so in list(queue_model)]
             selected_rows = self.get_selected_rows()
             selected_ids = [r.id for r in selected_rows]
-            current_song_id = integration.loaded_models.get('currentSong').get_property('songId')
+            current_song_id = integration.get_property('current-state').get_property('songId')
 
             if current_song_id in selected_ids: # handle changing song
                 if len(selected_rows) == len(all_ids):
                     new_id = None
                 else:
                     new_id = [s for s in all_ids if s not in selected_ids][0]
-                integration.loaded_models.get('currentSong').set_property('songId', new_id)
+                integration.get_property('current-state').set_property('songId', new_id)
 
             indexes_to_be_removed = []
             for i, song_id in enumerate(all_ids):

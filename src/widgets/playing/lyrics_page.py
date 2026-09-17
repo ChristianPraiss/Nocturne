@@ -118,10 +118,10 @@ class PlayingLyricsPage(Gtk.Stack):
         # We have to do this both before and after downloading the lyrics
         settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
         integration = get_current_integration()
-        if integration.loaded_models.get('currentSong').get_property('songId') != song_id:
+        if integration.get_property('current-state').get_property('songId') != song_id:
             return
         lyrics_type, raw_content = integration.getLyrics(song_id, attempt_download)
-        if integration.loaded_models.get('currentSong').get_property('songId') != song_id:
+        if integration.get_property('current-state').get_property('songId') != song_id:
             return
 
         if settings.get_value('auto-download-lyrics').unpack() and lyrics_type == 'not-found-locally':
@@ -204,13 +204,13 @@ class PlayingLyricsPage(Gtk.Stack):
     @Gtk.Template.Callback()
     def lyric_download_requested(self, button):
         integration = get_current_integration()
-        self.song_changed(integration.loaded_models.get('currentSong').get_property('songId'), True)
+        self.song_changed(integration.get_property('current-state').get_property('songId'), True)
 
     def copy_lyrics_lrc(self, dialog, task):
         if source_file := dialog.open_finish(task):
             with open(source_file.get_path(), 'r') as f:
                 integration = get_current_integration()
-                if songId := integration.loaded_models.get('currentSong').get_property('songId'):
+                if songId := integration.get_property('current-state').get_property('songId'):
                     if content := f.read():
                         integration.saveLyrics(songId, content, 'lrc')
                         self.song_changed(songId)
@@ -235,5 +235,5 @@ class PlayingLyricsPage(Gtk.Stack):
     def go_to_main(self, button=None):
         self.set_visible_child_name('not-found-locally')
         integration = get_current_integration()
-        integration.deleteLyrics(integration.loaded_models.get('currentSong').get_property('songId'))
+        integration.deleteLyrics(integration.get_property('current-state').get_property('songId'))
 

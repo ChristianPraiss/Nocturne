@@ -134,7 +134,7 @@ class PlayingCoverArt(Gtk.Box, Adw.Swipeable):
 
     def video_changed(self, videoId:str):
         integration = get_current_integration()
-        songId = integration.loaded_models.get('currentSong').get_property('songId')
+        songId = integration.get_property('current-state').get_property('songId')
         video_available = videoId and videoId == songId and self.video_el.get_paintable()
         self.view_switcher_el.set_visible(video_available)
         self.view_stack_el.set_visible_child_name('video' if video_available else 'audio')

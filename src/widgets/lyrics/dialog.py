@@ -36,7 +36,7 @@ class LyricEditRow(Adw.EntryRow):
     @Gtk.Template.Callback()
     def set_current_timestamp(self, button=None):
         integration = get_current_integration()
-        ps = integration.loaded_models.get('currentSong').get_property('positionSeconds')
+        ps = integration.get_property('current-state').get_property('positionSeconds')
         self.ms = int(ps * 1000)
         self.invalid_ms = False
         if button:
@@ -69,9 +69,10 @@ class LyricsDialog(Adw.Dialog):
 
     def __init__(self):
         integration = get_current_integration()
-        self.id = integration.loaded_models.get('currentSong').get_property('songId')
+        self.id = integration.get_property('current-state').get_property('songId')
         super().__init__()
         self.lrc_list_el.set_sort_func(lambda r1, r2: r1.ms - r2.ms)
+        integration.connect_to_current
         integration.connect_to_model('currentSong', 'positionSeconds', self.position_changed)
         integration.connect_to_model('currentSong', 'buttonState', self.state_stack_el.set_visible_child_name)
         integration.connect_to_model(self.id, 'title', self.set_title)
@@ -152,7 +153,7 @@ class LyricsDialog(Adw.Dialog):
     @Gtk.Template.Callback()
     def add_line(self, button):
         integration = get_current_integration()
-        ps = integration.loaded_models.get('currentSong').get_property('positionSeconds')
+        ps = integration.get_property('current-state').get_property('positionSeconds')
         row = LyricEditRow(
             ms=int(ps * 1000),
             content=""

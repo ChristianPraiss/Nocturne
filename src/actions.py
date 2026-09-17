@@ -62,11 +62,11 @@ def __save_playlist_resume(window):
     # Check if current queue origin is a playlist if so, save the resume state
     # Call in different thread
     integration = get_current_integration()
-    queue_origin = integration.loaded_models.get('currentSong').get_property('queueOrigin') or ""
+    queue_origin = integration.get_property('current-state').get_property('queueOrigin') or ""
     if model := integration.loaded_models.get(queue_origin):
         if isinstance(model, models.Playlist):
-            timestamp = integration.loaded_models.get('currentSong').get_property('positionSeconds')
-            current_song = integration.loaded_models.get('currentSong').get_property('songId')
+            timestamp = integration.get_property('current-state').get_property('positionSeconds')
+            current_song = integration.get_property('current-state').get_property('songId')
             integration.savePlaylistResume(
                 queue_origin_id=queue_origin,
                 song_id=current_song,
@@ -76,8 +76,8 @@ def __save_playlist_resume(window):
 def __replace_queue(window, songs:list, current_id:str=None, origin_id:str=""):
     integration = get_current_integration()
     __save_playlist_resume(window)
-    integration.loaded_models.get('currentSong').set_property('queueOrigin', origin_id)
-    queue_model = integration.loaded_models.get('currentSong').get_property('queueModel')
+    integration.get_property('current-state').set_property('queueOrigin', origin_id)
+    queue_model = integration.get_property('current-state').get_property('queueModel')
     GLib.idle_add(queue_model.remove_all)
     if len(songs) > 0:
         if current_id is None:
@@ -87,16 +87,16 @@ def __replace_queue(window, songs:list, current_id:str=None, origin_id:str=""):
             0,
             [Gtk.StringObject.new(SongId) for SongId in songs]
         )
-    GLib.idle_add(integration.loaded_models.get('currentSong').set_property, 'songId', current_id)
+    GLib.idle_add(integration.get_property('current-state').set_property, 'songId', current_id)
     if Gio.Settings(schema_id="com.jeffser.Nocturne").get_value('auto-play').unpack():
         threading.Thread(target=generate_auto_play_queue, args=(window, False), daemon=True).start()
 
 def __play_next(window, songs:list):
     integration = get_current_integration()
     __save_playlist_resume(window)
-    integration.loaded_models.get('currentSong').set_property('queueOrigin', "")
-    current_song_id = integration.loaded_models.get('currentSong').get_property('songId')
-    queue_model = integration.loaded_models.get('currentSong').get_property('queueModel')
+    integration.get_property('current-state').set_property('queueOrigin', "")
+    current_song_id = integration.get_property('current-state').get_property('songId')
+    queue_model = integration.get_property('current-state').get_property('queueModel')
     if queue_model.get_property('n-items') == 0 or not current_song_id:
         __replace_queue(window, songs)
     else:
@@ -116,9 +116,9 @@ def __play_next(window, songs:list):
 def __play_later(window, songs:list):
     integration = get_current_integration()
     __save_playlist_resume(window)
-    integration.loaded_models.get('currentSong').set_property('queueOrigin', "")
-    current_song_id = integration.loaded_models.get('currentSong').get_property('songId')
-    queue_model = integration.loaded_models.get('currentSong').get_property('queueModel')
+    integration.get_property('current-state').set_property('queueOrigin', "")
+    current_song_id = integration.get_property('current-state').get_property('songId')
+    queue_model = integration.get_property('current-state').get_property('queueModel')
     if queue_model.get_property('n-items') == 0 or not current_song_id:
         __replace_queue(window, songs)
     else:
@@ -196,9 +196,9 @@ def launch_playback(window):
 
 def generate_auto_play_queue(window, replace_on_finish:bool):
     integration = get_current_integration()
-    integration.loaded_models.get('currentSong').set_property('generatingQueue', True)
-    queue_model = integration.loaded_models.get('currentSong').get_property('queueModel')
-    generated_queue_model = integration.loaded_models.get('currentSong').get_property('generatedQueue')
+    integration.get_property('current-state').set_property('generatingQueue', True)
+    queue_model = integration.get_property('current-state').get_property('queueModel')
+    generated_queue_model = integration.get_property('current-state').get_property('generatedQueue')
     generated_queue_model.remove_all()
 
     song_list = []
@@ -223,7 +223,7 @@ def generate_auto_play_queue(window, replace_on_finish:bool):
         [Gtk.StringObject.new(s) for s in song_list]
     )
 
-    integration.loaded_models.get('currentSong').set_property('generatingQueue', False)
+    integration.get_property('current-state').set_property('generatingQueue', False)
 
     if replace_on_finish:
         __replace_queue(window, [so.get_string() for so in list(generated_queue_model)])
@@ -297,8 +297,7 @@ def logout(window):
             os.remove(pfp_destination_path)
         settings.set_string("welcome-user-home", "")
         settings.set_string("welcome-mode-home", "")
-    if window.get_application().player.mpris_published:
-        window.get_application().player.mpris.unpublish()
+    window.get_application().player.event_adapter.mpris.unpublish()
     for dialog in window.get_dialogs():
         GLib.idle_add(dialog.close)
     for page in list(window.main_navigationview):
@@ -356,7 +355,7 @@ def open_popout_window(window, fullscreened:bool=False):
 
 def toggle_fullscreen(window):
     integration = get_current_integration()
-    if integration.loaded_models.get('currentSong').get_property('queueModel').get_property('n-items') > 0:
+    if integration.get_property('current-state').get_property('queueModel').get_property('n-items') > 0:
         if popout_window := window.get_application().popout_window:
             GLib.idle_add(popout_window.present)
             if popout_window.is_fullscreen():
@@ -416,8 +415,8 @@ def player_lower_volume(window):
 
 def play_radio(window, model_id:str):
     integration = get_current_integration()
-    if model_id in [so.get_string() for so in integration.loaded_models.get('currentSong').get_property('queueModel')]:
-        integration.loaded_models.get('currentSong').set_property('songId', model_id)
+    if model_id in [so.get_string() for so in integration.get_property('current-state').get_property('queueModel')]:
+        integration.get_property('current-state').set_property('songId', model_id)
     else:
         __replace_queue(window, [model_id])
 
@@ -522,8 +521,8 @@ def delete_radio(window, model_id:str):
 
 def play_song(window, model_id:str):
     integration = get_current_integration()
-    if model_id in [so.get_string() for so in integration.loaded_models.get('currentSong').get_property('queueModel')]:
-        integration.loaded_models.get('currentSong').set_property('songId', model_id)
+    if model_id in [so.get_string() for so in integration.get_property('current-state').get_property('queueModel')]:
+        integration.get_property('current-state').set_property('songId', model_id)
     else:
         __replace_queue(window, [model_id])
 
@@ -828,7 +827,7 @@ def __request_song_download(model_id:str) -> bool:
     integration = get_current_integration()
     integration.verifySong(model_id, use_threading=False)
     if song_model := integration.loaded_models.get(model_id):
-        download_queue = integration.loaded_models.get('currentSong').get_property('downloadQueueModel')
+        download_queue = integration.get_property('current-state').get_property('downloadQueueModel')
         download_model = models.SongDownload(songId=model_id)
 
         artist_name = song_model.get_property('artist').split(';')[0]

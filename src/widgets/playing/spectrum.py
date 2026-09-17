@@ -38,7 +38,7 @@ class Spectrum(Gtk.DrawingArea):
         if self.stopped:
             self.target_magnitudes = [0] * self.settings.get_value('visualizer-bar-n').unpack()
         elif integration := get_current_integration():
-            if magnitudes_dict := integration.loaded_models.get('currentSong').get_property('magnitudes'):
+            if magnitudes_dict := integration.get_property('current-state').get_property('magnitudes'):
                 if next_timestamp := min((k for k in magnitudes_dict if k >= timestamp), default=None):
                     self.target_magnitudes = magnitudes_dict.get(next_timestamp)
 

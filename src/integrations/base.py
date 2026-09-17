@@ -88,8 +88,8 @@ class Base(GObject.Object):
     button_metadata = {}
     limitations = ()
 
-    # Always have a currentSong inside loaded_models
-    loaded_models = {'currentSong': models.CurrentSong()}
+    loaded_models = {}
+    current_state = GObject.Property(type=models.CurrentSong, default=models.CurrentSong())
 
     url = GObject.Property(type=str)
     trustServer = GObject.Property(type=bool, default=False)
@@ -139,8 +139,8 @@ class Base(GObject.Object):
     def __init__(self, *args, **kwargs):
         # do not change
         super().__init__(*args, **kwargs)
-        self.loaded_models = {'currentSong': models.CurrentSong()}
-        self.loaded_models.get('currentSong').connect('notify::songId', lambda *_: self.song_changed())
+        self.loaded_models = {}
+        self.get_property('current-state').connect('notify::songId', lambda *_: self.song_changed())
 
         self.settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
         self.library_ids = self.settings.get_strv("library-ids")
@@ -154,7 +154,7 @@ class Base(GObject.Object):
     def song_changed(self):
         # do not change
         previousSongId = self.song_connections.get('songId', '')
-        currentSongId = self.loaded_models.get('currentSong').get_property('songId')
+        currentSongId = self.get_property('current-state').get_property('songId')
         if previousSongId != currentSongId:
             if previousSong := self.loaded_models.get(previousSongId):
                 try:
@@ -220,7 +220,7 @@ class Base(GObject.Object):
         else:
             self.song_connections['callbacks'][parameter] = [callback]
 
-        if current_song_id := self.loaded_models.get('currentSong').get_property('songId'):
+        if current_song_id := self.get_property('current-state').get_property('songId'):
             if current_song_model := self.loaded_models.get(current_song_id):
                 callback(current_song_model.get_property(parameter))
 
@@ -234,6 +234,13 @@ class Base(GObject.Object):
             )
             GLib.idle_add(callback, self.loaded_models.get(model_id).get_property(parameter))
             self._auto_disconnect_on_unroot(callback, model, connection_id)
+        elif model_id == 'currentSong':
+            #TODO ^ temp code whilst I migrate everything to reference current-state directly
+            connection_id = self.get_property('current-state').connect(
+                'notify::{}'.format(parameter),
+                lambda *_, p=parameter, cb=callback: GLib.idle_add(cb, self.get_property('current-state').get_property(p))
+            )
+            GLib.idle_add(callback, self.get_property('current-state').get_property(parameter))
         return connection_id
 
     def _auto_disconnect_on_unroot(self, callback:callable, model:GObject.Object, connection_id:int):
@@ -323,8 +330,7 @@ class Base(GObject.Object):
         self.library_ids = settings.get_strv(key)
 
         #reset models
-        self.loaded_models = {'currentSong': models.CurrentSong()}
-        self.loaded_models.get('currentSong').connect('notify::songId', lambda *_: self.song_changed())
+        self.loaded_models = {}
 
     def getCoverArtBytes(self, model_id:str, size:int) -> bytes:
         # Used to send bytes to different parts of the codebase instead of full paintables, also called by getCoverArt
@@ -601,7 +607,7 @@ class Base(GObject.Object):
                 }
                 
                 if submission:
-                    listen_payload["listened_at"] = int(time.time() - (self.loaded_models.get('currentSong').get_property('positionSeconds') or 0))
+                    listen_payload["listened_at"] = int(time.time() - (self.get_property('current-state').get_property('positionSeconds') or 0))
 
                 payload = {
                     "listen_type": "single" if submission else "playing_now",
@@ -617,8 +623,8 @@ class Base(GObject.Object):
                     pass
 
         # Playlist Resume
-        queue_origin_id = self.loaded_models.get('currentSong').get_property('queueOrigin')
-        current_timestamp = self.loaded_models.get('currentSong').get_property('positionSeconds')
+        queue_origin_id = self.get_property('current-state').get_property('queueOrigin')
+        current_timestamp = self.get_property('current-state').get_property('positionSeconds')
         if model := self.loaded_models.get(queue_origin_id):
             if isinstance(model, models.Playlist):
                 conn, cursor = sql_instance.get_connection(self)

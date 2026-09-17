@@ -59,7 +59,7 @@ class PlayingFooter(Gtk.Overlay):
         mode_status = self.settings.get_value('use-big-footer').unpack()
         force_status = self.get_property('forceHugeMode')
         integration = get_current_integration()
-        songId = integration.loaded_models.get('currentSong').get_property('songId')
+        songId = integration.get_property('current-state').get_property('songId')
         isRadio = False
         if model := integration.loaded_models.get(songId):
             isRadio = bool(model.get_property('radioStreamUrl'))
@@ -74,7 +74,7 @@ class PlayingFooter(Gtk.Overlay):
 
     def position_changed(self, positionSeconds:float):
         integration = get_current_integration()
-        if not integration.loaded_models.get('currentSong').get_property('seeking'):
+        if not integration.get_property('current-state').get_property('seeking'):
             duration = self.progress_el.get_adjustment().get_upper()
             self.ro_progress_el.set_fraction(0 if duration == 0 else positionSeconds / duration)
             self.progress_el.get_adjustment().set_value(positionSeconds)
@@ -91,9 +91,9 @@ class PlayingFooter(Gtk.Overlay):
     def progress_bar_changed(self, scale_el, scroll_type, value):
         value = scale_el.get_adjustment().get_value()
         integration = get_current_integration()
-        integration.loaded_models.get('currentSong').set_property('seeking', True)
+        integration.get_property('current-state').set_property('seeking', True)
         def change_time(val):
-            integration.loaded_models.get('currentSong').set_property('seeking', False)
+            integration.get_property('current-state').set_property('seeking', False)
             nanoseconds = int(val * Gst.SECOND)
             self.get_root().get_application().player.gst.seek_simple(
                 Gst.Format.TIME,

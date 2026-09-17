@@ -12,7 +12,7 @@ class DownloadsQueueButton(Gtk.MenuButton):
 
     def setup(self):
         integration = get_current_integration()
-        model = integration.loaded_models.get('currentSong').get_property('downloadQueueModel')
+        model = integration.get_property('current-state').get_property('downloadQueueModel')
         self.download_list_el.get_parent().set_overflow(Gtk.Overflow.VISIBLE)
         self.download_list_el.bind_model(
             model,

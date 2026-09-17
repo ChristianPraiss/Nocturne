@@ -58,12 +58,10 @@ class NocturneWindow(Adw.ApplicationWindow):
     def close_request(self, window):
         if not self.get_hide_on_close():
             if integration := get_current_integration():
-                id_list = [so.get_string() for so in integration.loaded_models.get('currentSong').get_property('queueModel')]
-                current_song = integration.loaded_models.get('currentSong')
-
-                queue_origin = current_song.get_property('queueOrigin')
-                song_id = current_song.get_property('songId')
-                timestamp = current_song.get_property('positionSeconds')
+                id_list = [so.get_string() for so in integration.get_property('current-state').get_property('queueModel')]
+                queue_origin = integration.get_property('current-state').get_property('queueOrigin')
+                song_id = integration.get_property('current-state').get_property('songId')
+                timestamp = integration.get_property('current-state').get_property('positionSeconds')
                 if model := integration.loaded_models.get(queue_origin):
                     if isinstance(model, models.Playlist):
                         integration.savePlaylistResume(
@@ -79,7 +77,7 @@ class NocturneWindow(Adw.ApplicationWindow):
             if app := self.get_application():
                 if player := app.player:
                     GLib.idle_add(player.discord_rpc.close)
-                    GLib.idle_add(player.mpris.quit)
+                    GLib.idle_add(player.event_adapter.mpris.quit)
                 GLib.idle_add(app.quit)
 
     @Gtk.Template.Callback()
@@ -362,7 +360,7 @@ class NocturneWindow(Adw.ApplicationWindow):
     @Gtk.Template.Callback()
     def big_breakpoint_toggled(self, bp=None):
         if integration := get_current_integration():
-            song_playing = bool(integration.loaded_models.get('currentSong').get_property('songId'))
+            song_playing = bool(integration.get_property('current-state').get_property('songId'))
         else:
             song_playing = False
 
