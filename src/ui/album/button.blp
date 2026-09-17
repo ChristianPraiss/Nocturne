@@ -5,6 +5,7 @@ template $NocturneAlbumButton: Gtk.Box {
   orientation: vertical;
   spacing: 5;
   halign: center;
+  name: bind template.model as <$NocturneModelAlbum> .name;
 
   Gtk.Overlay {
     styles [
@@ -20,6 +21,7 @@ template $NocturneAlbumButton: Gtk.Box {
       ]
       tooltip-text: _("Play Album");
       action-name: "app.play_album";
+      action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
       valign: end;
       halign: start;
     }
@@ -30,11 +32,15 @@ template $NocturneAlbumButton: Gtk.Box {
         "circular",
         "osd"
       ]
-      child: Adw.Spinner {};
-      action-name: "app.toggle_star";
       accessibility {
         label: _("Toggle star");
       }
+
+      child: Adw.Spinner {};
+      action-name: "app.toggle_star";
+      action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
+      icon-name: bind $format_starred_icon_name(template.model as <$NocturneModelAlbum> .starred);
+      tooltip-text: bind $format_starred_tooltip_text(template.model as <$NocturneModelAlbum> .starred);
       valign: end;
       halign: end;
     }
@@ -45,8 +51,10 @@ template $NocturneAlbumButton: Gtk.Box {
         "flat"
       ]
       action-name: "app.show_album";
+      action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
       halign: center;
-      tooltip-text: _("Show Album");
+      tooltip-text: bind template.model as <$NocturneModelAlbum> .name;
+
       child: Gtk.Image cover_el {
         styles [
           "card"
@@ -54,9 +62,8 @@ template $NocturneAlbumButton: Gtk.Box {
         icon-size: large;
         overflow: hidden;
         hexpand: true;
-        paintable: Adw.SpinnerPaintable {
-          widget: cover_el;
-        };
+        icon-name: "music-queue-symbolic";
+        paintable: bind $format_gdkPaintable(template.model as <$NocturneModelAlbum> .gdkPaintable);
         accessibility {
           label: _("Album cover art");
         }
@@ -97,6 +104,7 @@ template $NocturneAlbumButton: Gtk.Box {
         ]
         ellipsize: end;
         max-width-chars: 1;
+        label: bind template.model as <$NocturneModelAlbum> .name;
       }
       Gtk.Label year_el {
         styles [
@@ -105,10 +113,13 @@ template $NocturneAlbumButton: Gtk.Box {
         visible: false;
         ellipsize: end;
         max-width-chars: 1;
+        label: bind $format_year(template.model as <$NocturneModelAlbum> .year, template.show-year);
       }
     };
 
     action-name: "app.show_album";
+    action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
+    tooltip-text: bind template.model as <$NocturneModelAlbum> .name;
   }
 
   Gtk.Button artist_el {
@@ -128,9 +139,14 @@ template $NocturneAlbumButton: Gtk.Box {
       label: _("Enter artist page");
     }
 
+    tooltip-text: bind template.model as <$NocturneModelAlbum> .artist;
+    action-name: "app.show_artist";
+    action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .artistId, 's');
+
     child: Gtk.Label {
       ellipsize: end;
       max-width-chars: 1;
+      label: bind template.model as <$NocturneModelAlbum> .artist;
     };
   }
 }
