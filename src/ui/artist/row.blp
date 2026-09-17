@@ -3,8 +3,13 @@ using Adw 1;
 
 template $NocturneArtistRow: Adw.ActionRow {
   action-name: "app.show_artist";
+  action-target: bind $format_action_target(template.model as <$NocturneModelArtist> .id, 's');
   activatable: true;
   use-markup: false;
+  title: bind template.model as <$NocturneModelArtist> .name;
+  subtitle: bind $format_album_count_label(template.model as <$NocturneModelArtist> .albumCount);
+  name: bind template.model as <$NocturneModelArtist> .name;
+
   Gtk.GestureClick {
     button: 3;
     released => $show_popover();
@@ -19,9 +24,7 @@ template $NocturneArtistRow: Adw.ActionRow {
       "p10"
     ]
     size: 48;
-    custom-image: Adw.SpinnerPaintable {
-      widget: avatar_el;
-    };
+    custom-image: bind template.model as <$NocturneModelArtist> .gdkPaintable;
     icon-name: "music-artist-symbolic";
   }
 

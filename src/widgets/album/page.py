@@ -155,7 +155,8 @@ class AlbumPage(Adw.NavigationPage):
 
     @Gtk.Template.Callback()
     def format_cover_pixel_size(self, obj, paintable:Gdk.Paintable) -> int:
-        self.update_background(paintable.save_to_png_bytes().get_data())
+        if paintable:
+            self.update_background(paintable.save_to_png_bytes().get_data())
         return 240 if paintable else -1
 
     @Gtk.Template.Callback()

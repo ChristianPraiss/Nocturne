@@ -12,6 +12,7 @@ class AlbumButton(Gtk.Box):
     model = GObject.Property(type=models.Album)
     show_year = GObject.Property(type=bool, default=False)
 
+    artist_el = Gtk.Template.Child() # Used in artist page
     star_el = Gtk.Template.Child()
     cover_el = Gtk.Template.Child()
     name_el = Gtk.Template.Child()

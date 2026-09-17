@@ -1,13 +1,15 @@
 # button.py
 
-from gi.repository import Gtk, Adw, GLib, Gdk, Gio
-from ...integrations import get_current_integration
+from gi.repository import GObject, Gtk, Adw, GLib, Gdk, Gio
+from ...integrations import get_current_integration, models
 from ...constants import CONTEXT_ARTIST
 from ..containers import ContextContainer
 
 @Gtk.Template(resource_path='/com/jeffser/Nocturne/artist/button.ui')
 class ArtistButton(Gtk.Button):
     __gtype_name__ = 'NocturneArtistButton'
+
+    model = GObject.Property(type=models.Artist)
 
     avatar_el = Gtk.Template.Child()
     name_el = Gtk.Template.Child()
@@ -17,16 +19,11 @@ class ArtistButton(Gtk.Button):
         self.id = id
         integration = get_current_integration()
         integration.verifyArtist(self.id)
-        super().__init__(
-            action_target=GLib.Variant.new_string(self.id)
-        )
-
         self.settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
         self.settings.connect("changed::button-size", lambda *_: self.update_size())
-
-        integration.connect_to_model(self.id, 'name', self.update_name)
-        integration.connect_to_model(self.id, 'albumCount', self.update_album_count)
-        integration.connect_to_model(self.id, 'gdkPaintable', self.update_cover)
+        super().__init__(
+            model=integration.loaded_models.get(self.id)
+        )
 
     def update_size(self):
         isBig = self.settings.get_value('button-size').unpack() == 'big'
@@ -39,22 +36,22 @@ class ArtistButton(Gtk.Button):
             self.name_el.remove_css_class('title-3')
             self.name_el.add_css_class('title-4')
 
-    def update_cover(self, paintable):
-        if paintable:
-            self.avatar_el.set_custom_image(paintable)
-        elif isinstance(self.avatar_el.get_custom_image(), Adw.SpinnerPaintable):
-            self.avatar_el.set_custom_image(None)
-        self.update_size()
+    @Gtk.Template.Callback()
+    def format_action_target(self, obj, value, variant) -> GLib.Variant:
+        return GLib.Variant(variant, value)
 
-    def update_name(self, name:str):
-        self.avatar_el.set_tooltip_text(name)
-        self.set_tooltip_text(name)
-        self.name_el.set_label(name)
-        self.set_name(name)
+    @Gtk.Template.Callback()
+    def format_to_bool(self, obj, value) -> bool:
+        return bool(value)
 
-    def update_album_count(self, albumCount:int):
-        self.album_count_el.set_label(ngettext("{} Album", "{} Albums", albumCount).format(albumCount))
-        self.album_count_el.set_visible(albumCount)
+    @Gtk.Template.Callback()
+    def format_album_count_label(self, obj, albumCount:int) -> str:
+        return ngettext("{} Album", "{} Albums", albumCount).format(albumCount)
+
+    @Gtk.Template.Callback()
+    def format_gdkPaintable(self, obj, paintable:Gdk.Paintable) -> Gdk.Paintable:
+        GLib.idle_add(self.update_size)
+        return paintable
 
     @Gtk.Template.Callback()
     def show_popover(self, *args):
