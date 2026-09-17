@@ -72,9 +72,6 @@ class LyricsDialog(Adw.Dialog):
         self.id = integration.get_property('current-state').get_property('songId')
         super().__init__()
         self.lrc_list_el.set_sort_func(lambda r1, r2: r1.ms - r2.ms)
-        integration.connect_to_current
-        integration.connect_to_model('currentSong', 'positionSeconds', self.position_changed)
-        integration.connect_to_model('currentSong', 'buttonState', self.state_stack_el.set_visible_child_name)
         integration.connect_to_model(self.id, 'title', self.set_title)
         integration.connect_to_model(self.id, 'duration', self.update_duration)
 
@@ -111,12 +108,13 @@ class LyricsDialog(Adw.Dialog):
         GLib.idle_add(self.lrc_list_el.invalidate_sort)
         GLib.idle_add(self.update_visibility)
 
-    def position_changed(self, position_seconds:float):
-        self.progress_el.get_adjustment().set_value(position_seconds)
-        if self.get_focus() not in list(self.position_spin):
-            self.position_spin.set_value(position_seconds)
+    def update_visibility(self):
+        self.main_stack.set_visible_child_name('content' if len(list(self.lrc_list_el)) > 0 else 'empty')
+
+    @Gtk.Template.Callback()
+    def format_position(self, obj, positionSeconds:float) -> float:
         if len(list(self.lrc_list_el)) > 0:
-            ms = int(position_seconds * 1000)+100
+            ms = int(positionSeconds * 1000)+100
             best_match = list(self.lrc_list_el)[0]
             for row in list(self.lrc_list_el):
                 if row.ms <= ms:
@@ -128,9 +126,7 @@ class LyricsDialog(Adw.Dialog):
                     self.focused_row.ts_button.remove_css_class('suggested-action')
                 self.focused_row = best_match
                 self.focused_row.ts_button.add_css_class('suggested-action')
-
-    def update_visibility(self):
-        self.main_stack.set_visible_child_name('content' if len(list(self.lrc_list_el)) > 0 else 'empty')
+        return positionSeconds
 
     @Gtk.Template.Callback()
     def seek_start(self, gesture, n_press, x, y):

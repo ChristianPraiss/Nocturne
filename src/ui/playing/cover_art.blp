@@ -30,15 +30,17 @@ template $NocturnePlayingCoverArt: Gtk.Box{
         hhomogeneous: false;
         vhomogeneous: false;
         enable-transitions: true;
+        visible-child-name: bind $format_view_stack_visible_child_name(
+          video_el.paintable,
+          template.root as <Adw.ApplicationWindow> .application as <$NocturneApplication> .integration as <$NocturneIntegrationBase> .current-state as <$NocturneModelCurrentState> .videoId,
+          template.root as <Adw.ApplicationWindow> .application as <$NocturneApplication> .integration as <$NocturneIntegrationBase> .current-state as <$NocturneModelCurrentState> .songId
+        );
 
         Adw.ViewStackPage {
           title: _("Audio");
           name: "audio";
           icon-name: "sound-symbolic";
           child: Gtk.Picture cover_el {
-            paintable: Adw.SpinnerPaintable {
-              widget: cover_el;
-            };
             accessibility {
               label: _("Song Cover");
             }
@@ -71,5 +73,10 @@ template $NocturnePlayingCoverArt: Gtk.Box{
     stack: view_stack_el;
     halign: center;
     policy: wide;
+    visible: bind $format_video_available(
+      video_el.paintable,
+      template.root as <Adw.ApplicationWindow> .application as <$NocturneApplication> .integration as <$NocturneIntegrationBase> .current-state as <$NocturneModelCurrentState> .videoId,
+      template.root as <Adw.ApplicationWindow> .application as <$NocturneApplication> .integration as <$NocturneIntegrationBase> .current-state as <$NocturneModelCurrentState> .songId
+    );
   }
 }

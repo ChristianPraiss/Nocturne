@@ -186,7 +186,7 @@ class SongDownload(GObject.Object):
     progress = GObject.Property(type=float, default=0.0) # 0-1
 
 class CurrentSong(GObject.Object):
-    __gtype_name__ = 'NocturneModelCurrentSong'
+    __gtype_name__ = 'NocturneModelCurrentState'
     # Not really currentSong, more like currentState at this point
 
     songId = GObject.Property(type=str)

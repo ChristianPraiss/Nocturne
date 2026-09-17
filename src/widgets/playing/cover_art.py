@@ -107,7 +107,6 @@ class PlayingCoverArt(Gtk.Box, Adw.Swipeable):
     def setup(self):
         integration = get_current_integration()
         integration.connect_to_current_song('gdkPaintableBig', self.update_cover_art)
-        integration.connect_to_model('currentSong', 'videoId', self.video_changed)
         self.spectrum_el.setup()
 
         if root := self.get_root():
@@ -132,10 +131,27 @@ class PlayingCoverArt(Gtk.Box, Adw.Swipeable):
             self.cover_el.add_css_class('p50')
         self.cover_el.set_paintable(paintable)
 
-    def video_changed(self, videoId:str):
-        integration = get_current_integration()
-        songId = integration.get_property('current-state').get_property('songId')
-        video_available = videoId and videoId == songId and self.video_el.get_paintable()
-        self.view_switcher_el.set_visible(video_available)
-        self.view_stack_el.set_visible_child_name('video' if video_available else 'audio')
+    """@Gtk.Template.Callback()
+    def format_cover_paintable(self, obj, paintable:Gdk.Paintable) -> Gdk.Paintable:
+        if paintable:
+            self.cover_el.remove_css_class('p50')
+            return paintable
+        else:
+            self.cover_el.add_css_class('p50')
+            return Gtk.IconTheme.get_for_display(Gdk.Display.get_default()).lookup_icon(
+                'music-note-symbolic',
+                None,
+                64,
+                1,
+                Gtk.TextDirection.NONE,
+                0
+            )"""
+
+    @Gtk.Template.Callback()
+    def format_video_available(self, obj, paintable:Gdk.Paintable, videoId:str, songId:str) -> bool:
+        return paintable and videoId and videoId == songId
+
+    @Gtk.Template.Callback()
+    def format_view_stack_visible_child_name(self, obj, paintable:Gdk.Paintable, videoId:str, songId:str) -> str:
+        return 'video' if self.format_video_available(obj, paintable, videoId, songId) else 'audio'
 

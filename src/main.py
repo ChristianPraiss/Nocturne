@@ -32,7 +32,7 @@ from gi.repository import GObject, Gtk, Gdk, Gio, Adw, GLib
 from .window import NocturneWindow
 from .preferences import NocturnePreferences
 from .constants import get_song_info_from_file, CLI_ARGUMENTS, TRANSLATORS, COPYRIGHT_NOTICE, set_version
-from .integrations import get_current_integration, set_current_integration, get_available_integrations, models
+from .integrations import get_current_integration, set_current_integration, get_available_integrations, models, Base
 from .widgets.playing import Player
 from .widgets.pages import LoginDialog
 
@@ -67,6 +67,7 @@ class NocturneApplication(Adw.Application):
     """The main application singleton class."""
 
     player = GObject.Property(type=Player)
+    integration = GObject.Property(type=Base)
 
     def __init__(self, version):
         self.version = version
@@ -138,6 +139,7 @@ class NocturneApplication(Adw.Application):
         ping_result = integration.ping()
         if ping_result.get('status') == 'ok':
             set_current_integration(integration)
+            self.set_property('integration', integration)
             integration.on_login()
             GLib.idle_add(self.main_window.main_stack.set_visible_child_name, "content")
             GLib.idle_add(self.main_window.setup)

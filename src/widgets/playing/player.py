@@ -153,7 +153,7 @@ class PlayerMprisAdapter(MprisAdapter):
         return False
 
     def is_repeating(self) -> bool:
-        return self.player.settings.get_value('playback-mode').unpack() == 'repeat-one'
+        return self.player.gst_player.settings.get_value('playback-mode').unpack() == 'repeat-one'
 
     def next(self):
         self.player.handle_song_change_request("next")
@@ -199,14 +199,14 @@ class PlayerMprisAdapter(MprisAdapter):
         pass
 
     def set_repeating(self, value:bool):
-        self.player.settings.set_string('playback-mode', 'repeat-one' if value else 'consecutive')
+        self.player.gst_player.settings.set_string('playback-mode', 'repeat-one' if value else 'consecutive')
 
     def set_shuffle(self, value:bool):
         # TODO not sure how I could implement this
         pass
 
     def set_volume(self, value:Volume):
-        self.player.settings.set_double('volume', value)
+        self.player.gst_player.settings.set_double('volume', value)
 
     def stop(self):
         self.player.gst_player.gst.set_state(Gst.State.NULL)
@@ -245,9 +245,9 @@ class PlayerEventAdapter(EventAdapter):
     def __init__(self, player):
         self.gst_player = player
         self.adapter = PlayerMprisAdapter(self)
-        self.mpris = Server("com.jeffser.Popcorn", adapter=self.adapter)
+        self.mpris = Server("com.jeffser.Nocturne", adapter=self.adapter)
         super().__init__(root=self.mpris.root, player=self.mpris.player)
-        self.interface = MprisInterface("Popcorn", self.adapter)
+        self.interface = MprisInterface("Nocturne", self.adapter)
         try:
             self.mpris.publish()
         except Exception as e:
