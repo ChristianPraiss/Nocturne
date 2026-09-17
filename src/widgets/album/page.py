@@ -31,12 +31,8 @@ class AlbumPage(Adw.NavigationPage):
     model = GObject.Property(type=models.Album)
 
     clamp_el = Gtk.Template.Child()
-    cover_el = Gtk.Template.Child()
-    name_el = Gtk.Template.Child()
-    artist_el = Gtk.Template.Child()
     star_el = Gtk.Template.Child()
     song_list_el = Gtk.Template.Child()
-    rating_container = Gtk.Template.Child()
     context_wrap_el = Gtk.Template.Child()
 
     def __init__(self, id:str):

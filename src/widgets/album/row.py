@@ -11,7 +11,6 @@ class AlbumRow(Adw.ActionRow):
 
     model = GObject.Property(type=models.Album)
 
-    cover_el = Gtk.Template.Child()
     menu_button_el = Gtk.Template.Child()
 
     def __init__(self, id:str):

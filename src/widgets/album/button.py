@@ -12,14 +12,9 @@ class AlbumButton(Gtk.Box):
     model = GObject.Property(type=models.Album)
     show_year = GObject.Property(type=bool, default=False)
 
-    play_el = Gtk.Template.Child()
     star_el = Gtk.Template.Child()
-    cover_button_el = Gtk.Template.Child()
     cover_el = Gtk.Template.Child()
-    name_button_el = Gtk.Template.Child()
     name_el = Gtk.Template.Child()
-    year_el = Gtk.Template.Child()
-    artist_el = Gtk.Template.Child()
 
     def __init__(self, id:str, show_year:bool=False):
         self.id = id
@@ -90,7 +85,7 @@ class AlbumButton(Gtk.Box):
                 pointing_to=rect,
                 has_arrow=False
             )
-            popover.set_parent(self.cover_button_el)
+            popover.set_parent(args[0].get_widget())
             popover.popup()
 
     @Gtk.Template.Callback()
@@ -111,7 +106,7 @@ class AlbumButton(Gtk.Box):
                 pointing_to=rect,
                 has_arrow=False
             )
-            popover.set_parent(self.name_button_el)
+            popover.set_parent(args[0].get_widget())
             popover.popup()
 
     @Gtk.Template.Callback()
@@ -129,5 +124,5 @@ class AlbumButton(Gtk.Box):
                 pointing_to=rect,
                 has_arrow=False
             )
-            popover.set_parent(self.artist_el)
+            popover.set_parent(args[0].get_widget())
             popover.popup()
