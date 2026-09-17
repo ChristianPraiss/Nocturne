@@ -28,7 +28,7 @@ gi.require_version('Gst', '1.0')
 gi.require_version('Xdp', '1.0')
 gi.require_version('XdpGtk4', '1.0')
 
-from gi.repository import Gtk, Gdk, Gio, Adw, GLib
+from gi.repository import GObject, Gtk, Gdk, Gio, Adw, GLib
 from .window import NocturneWindow
 from .preferences import NocturnePreferences
 from .constants import get_song_info_from_file, CLI_ARGUMENTS, TRANSLATORS, COPYRIGHT_NOTICE, set_version
@@ -66,12 +66,13 @@ class NocturneApplication(Adw.Application):
     __gtype_name__ = 'NocturneApplication'
     """The main application singleton class."""
 
+    player = GObject.Property(type=Player)
+
     def __init__(self, version):
         self.version = version
         self.external_songs = []
         self.main_window = None
         self.popout_window = None
-        self.player = None
         self.inhibit_cookie = None
         self.idle_inhibit_cookie = None
         self.css_provider = Gtk.CssProvider()
@@ -141,7 +142,7 @@ class NocturneApplication(Adw.Application):
             GLib.idle_add(self.main_window.main_stack.set_visible_child_name, "content")
             GLib.idle_add(self.main_window.setup)
             if not self.player:
-                self.player = Player(self)
+                self.set_property('player', Player(application=self))
             settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
             default_page = settings.get_value('default-page-tag').unpack() or 'home'
             self.main_window.activate_action("app.replace_root_page", GLib.Variant('s', default_page))

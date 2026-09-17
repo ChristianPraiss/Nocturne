@@ -7,7 +7,7 @@ from mpris_server.events import EventAdapter
 from mpris_server.server import Server
 from mpris_server import Metadata, ValidMetadata, Track, Position, Volume, Rate, PlayState, DbusObj, MetadataObj, ActivePlaylist, PlaylistEntry, MprisInterface
 
-from ...integrations import get_current_integration
+from ...integrations import get_current_integration, models
 from ...integrations.discord_rpc import DiscordRPC
 from urllib.parse import urlparse
 import threading, io, base64, logging, gc
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 Gst.init(None)
 
-class PlayerAdapter(MprisAdapter):
+class PlayerMprisAdapter(MprisAdapter):
     # Implementations from https://github.com/alexdelorenzo/mpris_server/blob/master/src/mpris_server/adapters.py
 
     def __init__(self, player):
@@ -117,7 +117,7 @@ class PlayerAdapter(MprisAdapter):
     def get_current_position(self) -> Position:
         # Unused
         # Microseconds
-        success, position = self.player.gst.query_position(Gst.Format.TIME)
+        success, position = self.player.gst_player.gst.query_position(Gst.Format.TIME)
         return Position(position/1000) # Microsecond
 
     def get_rate(self) -> Rate:
@@ -133,7 +133,7 @@ class PlayerAdapter(MprisAdapter):
         pass
 
     def get_playstate(self) -> PlayState:
-        success, state, pending = self.player.gst.get_state(0)
+        success, state, pending = self.player.gst_player.gst.get_state(0)
         return PlayState.PLAYING if state == Gst.State.PLAYING else PlayState.PAUSED
 
     def get_previous_track(self) -> Track:
@@ -144,10 +144,10 @@ class PlayerAdapter(MprisAdapter):
         return False
 
     def get_volume(self) -> Volume:
-        return Volume(self.player.gst.get_property("volume"))
+        return Volume(self.player.gst_player.gst.get_property("volume"))
 
     def is_mute(self) -> bool:
-        return self.player.gst.get_property("volume") == 0
+        return self.player.gst_player.gst.get_property("volume") == 0
 
     def is_playlist(self) -> bool:
         # Again, the queue is what it is, I'm not sure if I can get this info
@@ -164,19 +164,19 @@ class PlayerAdapter(MprisAdapter):
         pass
 
     def pause(self):
-        self.player.gst.set_state(Gst.State.PAUSED)
+        self.player.gst_player.gst.set_state(Gst.State.PAUSED)
 
     def play(self):
-        self.player.gst.set_state(Gst.State.PLAYING)
+        self.player.gst_player.gst.set_state(Gst.State.PLAYING)
 
     def previous(self):
         self.player.handle_song_change_request("previous")
 
     def resume(self):
-        self.player.gst.set_state(Gst.State.PLAYING)
+        self.player.gst_player.gst.set_state(Gst.State.PLAYING)
 
     def seek(self, time:Position, track_id: DbusObj | None = None):
-        self.player.gst.seek_simple(
+        self.player.gst_player.gst.seek_simple(
             Gst.Format.TIME,
             Gst.SeekFlags.FLUSH | Gst.SeekFlags.KEY_UNIT,
             time*1000
@@ -210,7 +210,7 @@ class PlayerAdapter(MprisAdapter):
         self.player.settings.set_double('volume', value)
 
     def stop(self):
-        self.player.gst.set_state(Gst.State.NULL)
+        self.player.gst_player.gst.set_state(Gst.State.NULL)
 
     def activate_playlist(self, id:DbusObj):
         pass
@@ -241,14 +241,28 @@ class PlayerAdapter(MprisAdapter):
     def remove_track(self, track_id:DbusObj):
         pass
 
-class Player(EventAdapter):
+class PlayerEventAdapter(EventAdapter):
+
+    def __init__(self, player):
+        self.gst_player = player
+        self.adapter = PlayerMprisAdapter(self)
+        self.mpris = Server("com.jeffser.Popcorn", adapter=self.adapter)
+        super().__init__(root=self.mpris.root, player=self.mpris.player)
+        self.interface = MprisInterface("Popcorn", self.adapter)
+        try:
+            self.mpris.publish()
+        except Exception as e:
+            logger.error(e)
+
+class Player(GObject.Object):
     __gtype_name__ = 'NocturnePlayer'
 
-    def __init__(self, application):
+    application = GObject.Property(type=Adw.Application)
+    gst = GObject.Property(type=Gst.Element, default=Gst.ElementFactory.make("playbin", "player"))
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.settings = Gio.Settings(schema_id="com.jeffser.Nocturne")
-        self.settings.set_double("volume", self.settings.get_value("volume").unpack())
-        self.application = application
-        self.gst = Gst.ElementFactory.make("playbin", "music-player")
         self.gst.connect("source-setup", self.on_source_setup)
         try:
             self.gst.set_property("video-sink", Gst.ElementFactory.make("gtk4paintablesink", "video-sink"))
@@ -320,16 +334,7 @@ class Player(EventAdapter):
         self.bus.connect("message::element", self.handle_message_element)
         self.bus.connect("message::stream-start", self.handle_stream_start)
 
-        self.adapter = PlayerAdapter(self)
-        self.mpris = Server("com.jeffser.Nocturne", adapter=self.adapter)
-        super().__init__(root=self.mpris.root, player=self.mpris.player)
-        self.interface = MprisInterface("Nocturne", self.adapter)
-        self.mpris_published = False
-        try:
-            self.mpris.publish()
-            self.mpris_published = True
-        except Exception as e:
-            print("Failed to publish MPRIS:", e)
+        self.event_adapter = PlayerEventAdapter(self)
         GLib.timeout_add(64, self.update_stream_progress)
 
         self.last_song = ''
@@ -350,6 +355,7 @@ class Player(EventAdapter):
         }
         for parameter, callback in connections.items():
             integration.connect_to_current_song(parameter, callback)
+
         integration.connect_to_model('currentSong', 'songId', self.song_changed)
         integration.connect_to_model('currentSong', 'songId', lambda *_: self.discord_rpc.update())
         integration.connect_to_model('currentSong', 'displaySongTitle', lambda *_: self.discord_rpc.update())
@@ -506,7 +512,7 @@ class Player(EventAdapter):
                 if not integration.loaded_models.get('currentSong').get_property('seeking'):
                     is_playing = new_state == Gst.State.PLAYING
                     integration.loaded_models.get("currentSong").set_property("buttonState", 'pause' if is_playing else 'play')
-                    self.emit_changes(self.mpris.player, changes=['Metadata', 'PlaybackStatus'])
+                    self.event_adapter.emit_changes(self.event_adapter.mpris.player, changes=['Metadata', 'PlaybackStatus'])
                     self.discord_rpc.update()
 
     def handle_message_tag(self, bus, message):
@@ -539,7 +545,7 @@ class Player(EventAdapter):
                             emit_changes = True
 
                         if emit_changes:
-                            self.emit_changes(self.mpris.player, changes=['Metadata', 'PlaybackStatus'])
+                            self.event_adapter.emit_changes(self.event_adapter.mpris.player, changes=['Metadata', 'PlaybackStatus'])
 
     def get_next_queue_id(self):
         integration = get_current_integration()
@@ -587,7 +593,7 @@ class Player(EventAdapter):
         if self.preloaded_id:
             integration = get_current_integration()
             integration.loaded_models.get('currentSong').set_property('songId', self.preloaded_id)
-            self.emit_changes(self.mpris.player, changes=['Metadata', 'PlaybackStatus'])
+            self.event_adapter.emit_changes(self.event_adapter.mpris.player, changes=['Metadata', 'PlaybackStatus'])
 
     def restore_play_queue(self):
         integration = get_current_integration()
