@@ -2,9 +2,6 @@ using Gtk 4.0;
 using Adw 1;
 
 template $NocturneAlbumRow: Adw.ActionRow {
-  action-name: "app.show_album";
-  activatable: true;
-  use-markup: false;
   Gtk.GestureClick {
     button: 3;
     released => $show_popover();
@@ -12,6 +9,13 @@ template $NocturneAlbumRow: Adw.ActionRow {
   Gtk.GestureLongPress {
     pressed => $show_popover();
   }
+  action-name: "app.show_album";
+  action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
+  title: bind template.model as <$NocturneModelAlbum> .name;
+  subtitle: bind template.model as <$NocturneModelAlbum> .artist;
+  name: bind template.model as <$NocturneModelAlbum> .name;
+  activatable: true;
+  use-markup: false;
 
   [prefix]
   Gtk.Image cover_el {
@@ -25,9 +29,9 @@ template $NocturneAlbumRow: Adw.ActionRow {
     overflow: hidden;
     valign: center;
     halign: center;
-    paintable: Adw.SpinnerPaintable {
-      widget: cover_el;
-    };
+    icon-name: "music-queue-symbolic";
+    paintable: bind template.model as <$NocturneModelAlbum> .gdkPaintable;
+    pixel-size: bind $format_cover_pixel_size(template.model as <$NocturneModelAlbum> .gdkPaintable);
     accessibility {
       label: _("Album cover art");
     }
