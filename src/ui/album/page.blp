@@ -2,7 +2,8 @@ using Gtk 4.0;
 using Adw 1;
 
 template $NocturneAlbumPage: Adw.NavigationPage {
-  title: _("Album");
+  title: bind template.model as <$NocturneModelAlbum> .name;
+  name: bind template.model as <$NocturneModelAlbum> .name;
   child: Adw.ToolbarView {
     extend-content-to-top-edge: true;
 
@@ -37,18 +38,18 @@ template $NocturneAlbumPage: Adw.NavigationPage {
               styles [
                 "card"
               ]
+              accessibility {
+                label: _("Album cover art");
+              }
               icon-size: large;
               height-request: 240;
               width-request: 240;
               overflow: hidden;
               halign: center;
               valign: start;
-              paintable: Adw.SpinnerPaintable {
-                widget: cover_el;
-              };
-              accessibility {
-                label: _("Album cover art");
-              }
+              pixel-size: bind $format_cover_pixel_size(template.model as <$NocturneModelAlbum> .gdkPaintable);
+              paintable: bind template.model as <$NocturneModelAlbum> .gdkPaintable;
+              icon-name: "music-queue-symbolic";
             }
 
             Gtk.Box {
@@ -67,7 +68,8 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 halign: start;
                 ellipsize: end;
                 valign: center;
-                visible: false;
+                label: bind template.model as <$NocturneModelAlbum> .name;
+                visible: bind $format_to_bool(template.model as <$NocturneModelAlbum> .name);
               }
 
               Gtk.Button artist_el {
@@ -76,14 +78,17 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                   "dimmed",
                   "p0"
                 ]
-                halign: start;
-                valign: center;
-                visible: false;
-                action-name: "app.show_artist";
-                action-target: "''";
                 accessibility {
                   label: _("Enter artist page");
                 }
+
+                halign: start;
+                valign: center;
+                action-name: "app.show_artist";
+                action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .artistId, 's');
+                label: bind template.model as <$NocturneModelAlbum> .artist;
+                tooltip-text: bind template.model as <$NocturneModelAlbum> .artist;
+                visible: bind $format_to_bool(template.model as <$NocturneModelAlbum> .artist);
               }
 
               Gtk.Box rating_container {
@@ -93,7 +98,7 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 Gtk.Button {
                   name: "1";
                   tooltip-text: _("1 Star");
-                  icon-name: "non-starred-symbolic";
+                  icon-name: bind $format_rating_icon_name(template.model as <$NocturneModelAlbum> .userRating, 1);
                   clicked => $change_rating();
                   styles [
                     "flat"
@@ -102,7 +107,7 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 Gtk.Button {
                   name: "2";
                   tooltip-text: _("2 Stars");
-                  icon-name: "non-starred-symbolic";
+                  icon-name: bind $format_rating_icon_name(template.model as <$NocturneModelAlbum> .userRating, 2);
                   clicked => $change_rating();
                   styles [
                     "flat"
@@ -111,7 +116,7 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 Gtk.Button {
                   name: "3";
                   tooltip-text: _("3 Stars");
-                  icon-name: "non-starred-symbolic";
+                  icon-name: bind $format_rating_icon_name(template.model as <$NocturneModelAlbum> .userRating, 3);
                   clicked => $change_rating();
                   styles [
                     "flat"
@@ -120,7 +125,7 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 Gtk.Button {
                   name: "4";
                   tooltip-text: _("4 Stars");
-                  icon-name: "non-starred-symbolic";
+                  icon-name: bind $format_rating_icon_name(template.model as <$NocturneModelAlbum> .userRating, 4);
                   clicked => $change_rating();
                   styles [
                     "flat"
@@ -129,7 +134,7 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                 Gtk.Button {
                   name: "5";
                   tooltip-text: _("5 Stars");
-                  icon-name: "non-starred-symbolic";
+                  icon-name: bind $format_rating_icon_name(template.model as <$NocturneModelAlbum> .userRating, 5);
                   clicked => $change_rating();
                   styles [
                     "flat"
@@ -146,11 +151,16 @@ template $NocturneAlbumPage: Adw.NavigationPage {
                   styles [
                     "circular"
                   ]
-                  child: Adw.Spinner {};
-                  action-name: "app.toggle_star";
                   accessibility {
                     label: _("Toggle star");
                   }
+
+                  action-name: "app.toggle_star";
+                  action-target: bind $format_action_target(template.model as <$NocturneModelAlbum> .id, 's');
+                  icon-name: bind $format_starred_icon_name(template.model as <$NocturneModelAlbum> .starred);
+                  tooltip-text: bind $format_starred_tooltip_text(template.model as <$NocturneModelAlbum> .starred);
+                  valign: end;
+                  halign: end;
                 }
               }
             }

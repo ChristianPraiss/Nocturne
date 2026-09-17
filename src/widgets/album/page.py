@@ -1,8 +1,8 @@
 # page.py
 
-from gi.repository import Gtk, Adw, GLib
+from gi.repository import GObject, Gtk, Gdk, Adw, GLib
 from ..song import SongRow
-from ...integrations import get_current_integration
+from ...integrations import get_current_integration, models
 from ...constants import CONTEXT_ALBUM
 from ..containers import get_context_buttons_list
 import threading, io
@@ -28,6 +28,8 @@ class DiscIndicator(Gtk.ListBoxRow):
 class AlbumPage(Adw.NavigationPage):
     __gtype_name__ = 'NocturneAlbumPage'
 
+    model = GObject.Property(type=models.Album)
+
     clamp_el = Gtk.Template.Child()
     cover_el = Gtk.Template.Child()
     name_el = Gtk.Template.Child()
@@ -41,9 +43,10 @@ class AlbumPage(Adw.NavigationPage):
         self.id = id
         integration = get_current_integration()
         integration.verifyAlbum(self.id, True)
-        super().__init__()
-
-        self.star_el.set_action_target_value(GLib.Variant.new_string(self.id))
+        super().__init__(
+            model=integration.loaded_models.get(self.id)
+        )
+        integration.connect_to_model(self.id, 'song', self.update_song_list)
         context = CONTEXT_ALBUM.copy()
         del context['show-artist']
         if 'no-downloads' in integration.limitations:
@@ -53,13 +56,6 @@ class AlbumPage(Adw.NavigationPage):
             if btn.get_name() != 'show-artist':
                 self.context_wrap_el.append(btn)
 
-        integration.connect_to_model(self.id, 'name', self.update_name)
-        integration.connect_to_model(self.id, 'artist', self.update_artist)
-        integration.connect_to_model(self.id, 'artistId', self.update_artist_id)
-        integration.connect_to_model(self.id, 'starred', self.update_starred)
-        integration.connect_to_model(self.id, 'song', self.update_song_list)
-        integration.connect_to_model(self.id, 'gdkPaintable', self.update_cover)
-        integration.connect_to_model(self.id, 'userRating', self.update_rating)
         self.song_list_el.list_el.set_sort_func(self.song_list_sort_func)
 
     def song_list_sort_func(self, r1, r2):
@@ -88,15 +84,6 @@ class AlbumPage(Adw.NavigationPage):
         else:
             return discN1 - discN2
 
-    def update_cover(self, paintable):
-        if paintable:
-            self.cover_el.set_from_paintable(paintable)
-            self.cover_el.set_pixel_size(240)
-            self.update_background(paintable.save_to_png_bytes().get_data())
-        elif isinstance(self.cover_el.get_paintable(), Adw.SpinnerPaintable):
-            self.cover_el.set_from_icon_name("music-queue-symbolic")
-            self.cover_el.set_pixel_size(-1)
-
     def update_background(self, raw_bytes:bytes):
         def run():
             img_io = io.BytesIO(raw_bytes)
@@ -117,36 +104,6 @@ class AlbumPage(Adw.NavigationPage):
             )
         if raw_bytes:
             threading.Thread(target=run, daemon=True).start()
-
-    def update_rating(self, rating:int):
-        for i, el in enumerate(list(self.rating_container)):
-            el.set_icon_name("starred-symbolic" if rating >= i+1 else "non-starred-symbolic")
-
-    def update_name(self, name:str):
-        self.name_el.set_label(name)
-        self.name_el.set_visible(name)
-        self.set_title(name or _('Album'))
-        self.set_name(name)
-
-    def update_artist(self, artist:str):
-        self.artist_el.set_label(artist)
-        self.artist_el.set_visible(artist)
-        self.artist_el.set_tooltip_text(artist)
-
-    def update_artist_id(self, artistId:str):
-        self.artist_el.set_action_target_value(GLib.Variant.new_string(artistId))
-
-    def update_starred(self, starred:bool):
-        if starred:
-            self.star_el.add_css_class('accent')
-            self.star_el.remove_css_class('dim-label')
-            self.star_el.set_icon_name('heart-filled-symbolic')
-            self.star_el.set_tooltip_text(_('Favorite'))
-        else:
-            self.star_el.remove_css_class('accent')
-            self.star_el.add_css_class('dim-label')
-            self.star_el.set_icon_name('heart-outline-thick-symbolic')
-            self.star_el.set_tooltip_text(_('Not Favorite'))
 
     def update_song_list(self, song_list:list):
         def run():
@@ -191,6 +148,37 @@ class AlbumPage(Adw.NavigationPage):
         for row in list(self.song_list_el.list_el):
             if isinstance(row, SongRow):
                 GLib.idle_add(set_action, row)
+
+    @Gtk.Template.Callback()
+    def format_rating_icon_name(self, obj, rating:int, index):
+        return "starred-symbolic" if rating >= index else "non-starred-symbolic"
+
+    @Gtk.Template.Callback()
+    def format_action_target(self, obj, value, variant) -> GLib.Variant:
+        return GLib.Variant(variant, value)
+
+    @Gtk.Template.Callback()
+    def format_cover_pixel_size(self, obj, paintable:Gdk.Paintable) -> int:
+        self.update_background(paintable.save_to_png_bytes().get_data())
+        return 240 if paintable else -1
+
+    @Gtk.Template.Callback()
+    def format_to_bool(self, obj, value) -> bool:
+        return bool(value)
+
+    @Gtk.Template.Callback()
+    def format_starred_tooltip_text(self, obj, starred:bool) -> str:
+        return _("Favorite") if starred else _("Not Favorite")
+
+    @Gtk.Template.Callback()
+    def format_starred_icon_name(self, obj, starred:bool) -> str:
+        if starred:
+            self.star_el.add_css_class('accent')
+            self.star_el.remove_css_class('dim-label')
+        else:
+            self.star_el.remove_css_class('accent')
+            self.star_el.add_css_class('dim-label')
+        return "heart-filled-symbolic" if starred else "heart-outline-thick-symbolic"
 
     @Gtk.Template.Callback()
     def change_rating(self, button):
