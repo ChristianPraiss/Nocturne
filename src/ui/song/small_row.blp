@@ -14,6 +14,9 @@ template $NocturneSongSmallRow: Gtk.Button {
     "p0"
   ]
   action-name: "app.play_song";
+  action-target: bind $format_action_target(template.model as <$NocturneModelSong> .id, 's');
+  name: bind template.model as <$NocturneModelSong> .title;
+  tooltip-text: bind template.model as <$NocturneModelSong> .title;
 
   child: Gtk.Box {
     orientation: horizontal;
@@ -23,6 +26,10 @@ template $NocturneSongSmallRow: Gtk.Button {
       styles [
         "card"
       ]
+      accessibility {
+        label: _("Song cover art");
+      }
+
       height-request: 48;
       width-request: 48;
       margin-top: 5;
@@ -30,12 +37,8 @@ template $NocturneSongSmallRow: Gtk.Button {
       overflow: hidden;
       valign: center;
       halign: center;
-      paintable: Adw.SpinnerPaintable {
-        widget: cover_el;
-      };
-      accessibility {
-        label: _("Song cover art");
-      }
+      paintable: bind template.model as <$NocturneModelSong> .gdkPaintable;
+      pixel-size: bind $format_pixel_size(template.model as <$NocturneModelSong> .gdkPaintable);
     }
 
     Gtk.Box {
@@ -49,6 +52,7 @@ template $NocturneSongSmallRow: Gtk.Button {
         wrap: true;
         wrap-mode: word_char;
         xalign: 0;
+        label: bind template.model as <$NocturneModelSong> .title;
       }
 
       Gtk.Label subtitle_el {
@@ -59,6 +63,7 @@ template $NocturneSongSmallRow: Gtk.Button {
         wrap: true;
         wrap-mode: word_char;
         xalign: 0;
+        label: bind $format_subtitle(template.model as <$NocturneModelSong> .album, template.model as <$NocturneModelSong> .artist, template.show-album-name);
       }
     }
   };
