@@ -12,7 +12,7 @@ class RadiosPage(Adw.NavigationPage):
     main_stack = Gtk.Template.Child()
     list_el = Gtk.Template.Child()
 
-    def reload(self):
+    def load(self):
         # call in different thread
         GLib.idle_add(self.main_stack.set_visible_child_name, 'loading')
         integration = get_current_integration()
@@ -21,6 +21,9 @@ class RadiosPage(Adw.NavigationPage):
         for id in radios:
             GLib.idle_add(self.list_el.append, SongRow(id))
         GLib.idle_add(self.update_visibility)
+
+    def reload(self):
+        self.load()
 
     def reset(self):
         self.list_el.remove_all()
